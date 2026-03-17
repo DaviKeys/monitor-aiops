@@ -1,0 +1,45 @@
+services:
+  postgres-db:
+    image: postgres:15
+    container_name: monitor_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+      POSTGRES_DB: monitor_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: monitor_rabbitmq
+    ports:
+      - "5672:5672"   # Porta que o Python e o Java vão usar para conversar
+      - "15672:15672" # Painel visual web para você ver a fila enchendo!
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: monitor_grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres-db
+
+  backend:
+    build: .
+    container_name: java_api
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres-db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: adminpassword
+      SPRING_RABBITMQ_HOST: rabbitmq # Avisa o Java onde está a fila
+    depends_on:
+      - postgres-db
+      - rabbitmq # O Java só sobe depois do RabbitMQ
+
+volumes:
+  postgres_data:

@@ -18,40 +18,50 @@ import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
+/**
+ * A API utiliza uma API key simples (header) por ser um canal máquina-a-máquina e facilitar
+ * integração com agentes externos. O filtro aplica validação apenas em rotas de métricas para
+ * manter o restante do backend desacoplado dessa credencial.
+ */
 public class SecurityConfig {
 
-    // O nome do cabeçalho que o Python terá que enviar
+    // Header utilizado pelo agente para autenticação do endpoint de ingestão.
     private static final String API_KEY_HEADER = "X-API-KEY";
 
     @Value("${app.security.api-key:obuc-tech-secreta-2026}")
     private String apiKeyValue;
 
     @Bean
+    /**
+     * Define a cadeia de filtros de segurança.
+     *
+     * @param http builder do Spring Security.
+     * @return {@link SecurityFilterChain} configurada para autenticação por API key.
+     * @throws Exception em erro de construção da cadeia.
+     */
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()) // Desabilita proteção de formulários web (nosso foco é só backend/API)
+        // API stateless; CSRF não se aplica ao cenário de ingestão via cliente não-browser.
+        http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new OncePerRequestFilter() {
                     @Override
                     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
                         String path = request.getRequestURI();
 
-                        // Verifica se a rota que estão tentando acessar é a de métricas
+                        // Restringe autenticação por API key ao endpoint de ingestão.
                         if (path.startsWith("/api/metrics")) {
                             String apiKey = request.getHeader(API_KEY_HEADER);
 
-                            // Confere se a chave enviada bate com a nossa chave secreta
+                            // Fail-fast: retorna 401 se a credencial não for válida.
                             if (apiKeyValue.equals(apiKey)) {
-                                // Chave correta! O guarda-costas deixa passar.
                                 System.out.println("[SECURITY] API key OK para " + request.getMethod() + " " + path);
                                 filterChain.doFilter(request, response);
                             } else {
-                                // Sem chave ou chave errada! Bloqueia com Erro 401.
                                 System.out.println("[SECURITY] API key inválida para " + request.getMethod() + " " + path + ". Recebido='" + apiKey + "'");
                                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                                 response.getWriter().write("Acesso Negado: API Key ausente ou invalida");
                             }
                         } else {
-                            // Se for outra rota do sistema, deixa passar
                             filterChain.doFilter(request, response);
                         }
                     }

@@ -1,7 +1,7 @@
 package com.davi.monitor_aiops;
 
 import com.davi.monitor_aiops.rabbitmq.RabbitConfig;
-import tools.jackson.databind.ObjectMapper; // <-- O NOVO IMPORT DO JACKSON 3!
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/metrics")
+/**
+ * Entrada HTTP do pipeline de métricas.
+ *
+ * Encaminha o payload recebido para o RabbitMQ, desacoplando ingestão (HTTP) do
+ * processamento (persistência/alertas) e reduzindo impacto de picos de tráfego.
+ */
 public class SiteMetricController {
 
     @Autowired
@@ -19,6 +25,12 @@ public class SiteMetricController {
     private ObjectMapper objectMapper;
 
     @PostMapping
+    /**
+     * Recebe uma métrica e publica na fila de processamento.
+     *
+     * @param metric payload já validado/desserializado pelo Spring MVC.
+     * @return 200 quando publicado com sucesso; 500 quando falhar serialização/publicação.
+     */
     public ResponseEntity<String> receiveMetric(@RequestBody SiteMetric metric) {
         try {
             System.out.println("[API] Métrica recebida. targetUrl=" + metric.getTargetUrl() + " latencyMs=" + metric.getLatencyMs() + " riskLevel=" + metric.getRiskLevel());

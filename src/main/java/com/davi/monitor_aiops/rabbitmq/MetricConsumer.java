@@ -11,6 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * Consome métricas do RabbitMQ e executa processamento assíncrono.
+ *
+ * Responsável por persistência e disparo de alertas. A fila reduz acoplamento com o endpoint HTTP
+ * e evita que latência de I/O (banco/e-mail) impacte o tempo de resposta da API.
+ */
 public class MetricConsumer {
 
     @Autowired
@@ -23,6 +29,11 @@ public class MetricConsumer {
     private EmailService emailService;
 
     @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
+    /**
+     * Processa o payload publicado na fila.
+     *
+     * @param message JSON serializado do contrato {@code SiteMetric}.
+     */
     public void consumeMessage(String message) {
         try {
             SiteMetric metric = objectMapper.readValue(message, SiteMetric.class);
@@ -38,6 +49,7 @@ public class MetricConsumer {
                 System.out.println("[DEBUG] riskLevel codepoints: " + sb);
             }
 
+            // Normaliza o campo para tolerar diferenças de encoding/acentuação e whitespace no tráfego.
             if (isCriticalRisk(riskLevelRaw)) {
                 System.out.println("⚠️ Risco CRÍTICO detectado! Preparando e-mail...");
 
@@ -61,6 +73,7 @@ public class MetricConsumer {
             return false;
         }
 
+        // Comparação defensiva: NFC + case-insensitive para evitar falso negativo na string "CRÍTICO".
         String normalizedIncoming = Normalizer.normalize(riskLevelRaw.trim(), Normalizer.Form.NFC)
                 .toUpperCase(Locale.ROOT);
         String normalizedExpected = Normalizer.normalize("CRÍTICO", Normalizer.Form.NFC)

@@ -6,7 +6,7 @@ from sklearn.ensemble import IsolationForest
 # Integração: publica métricas de latência na API do backend.
 API_URL = "http://localhost:8080/api/metrics"
 API_KEY = "davi-super-secreta"
-TARGET_URL = "https://teste123davi.com/"
+TARGET_URL = "https://www.youtube.com"
 
 def get_real_latency(url):
     """Mede a latência real (ms) de uma requisição HTTP.

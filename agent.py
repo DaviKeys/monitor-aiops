@@ -3,16 +3,12 @@ import requests
 import numpy as np
 from sklearn.ensemble import IsolationForest
 
-# Integração: publica métricas de latência na API do backend.
+
 API_URL = "http://localhost:8080/api/metrics"
 API_KEY = "davi-super-secreta"
 TARGET_URL = "https://www.youtube.com"
 
 def get_real_latency(url):
-    """Mede a latência real (ms) de uma requisição HTTP.
-
-    Em falha de rede/timeout, retorna um sentinel (5000ms) para acionar o guardrail.
-    """
     inicio = time.perf_counter()
     try:
         requests.get(url, timeout=5)

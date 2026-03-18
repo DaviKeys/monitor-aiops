@@ -10,12 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/metrics")
-/**
- * Entrada HTTP do pipeline de métricas.
- *
- * Encaminha o payload recebido para o RabbitMQ, desacoplando ingestão (HTTP) do
- * processamento (persistência/alertas) e reduzindo impacto de picos de tráfego.
- */
+
 public class SiteMetricController {
 
     @Autowired
@@ -27,7 +22,6 @@ public class SiteMetricController {
     @PostMapping
     /**
      * Recebe uma métrica e publica na fila de processamento.
-     *
      * @param metric payload já validado/desserializado pelo Spring MVC.
      * @return 200 quando publicado com sucesso; 500 quando falhar serialização/publicação.
      */
